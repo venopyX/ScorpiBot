@@ -40,7 +40,7 @@ class ScorpiBot:
         chat_type = update.message.chat.type
         logger.debug(f"Received message: {user_message} in {chat_type}")
 
-        if chat_type == "private" or (chat_type == "group" and ("scorpibot" in user_message or (update.message.reply_to_message and update.message.reply_to_message.from_user.username == context.bot.username))):
+        if chat_type == "private" or chat_type == "group":
             try:
                 # Make the API call
                 api_response = ScorpiAPI.get_response(user_message)
@@ -50,10 +50,12 @@ class ScorpiBot:
                 reply_text = api_response if api_response else "Sorry, I couldn't understand that. Can you try again? 🤔"
 
                 await context.bot.send_message(chat_id=update.effective_chat.id, text=reply_text)
+                logger.debug(f"Sending message: '{reply_text}' to chat_id: {chat_id}")
                 logger.info(f"Sent response to {update.effective_chat.id}")
             except Exception as e:
                 logger.error(f"Error in message_handler: {e}")
                 await context.bot.send_message(chat_id=update.effective_chat.id, text="Oops! Something went wrong. 😅")
+                logger.debug(f"Sending message: '{reply_text}' to chat_id: {chat_id}")
 
     def run(self):
         logger.info("Starting Scorpibot...")
