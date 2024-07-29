@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 class ScorpiAPI:
     @staticmethod
-    def get_response(user_message):
+    def get_response(user_message="What is the weather like today?"):
         headers = {"Authorization": f"Bearer {API_TOKEN}"}
         inputs = [
             {"role": "system", "content": Instruction.system_prompt()},
@@ -29,3 +29,9 @@ class ScorpiAPI:
         except requests.RequestException as e:
             logger.error(f"API request failed: {e}")
             return "Oops! Something went wrong. 😅"
+
+# Example usage
+if __name__ == "__main__":
+    api = ScorpiAPI()
+    response = api.get_response()  # This will use the default example message
+    print(response)
