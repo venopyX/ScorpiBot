@@ -41,6 +41,9 @@ class PrincessSeleneBot:
         if self.last_update_id and update.update_id <= self.last_update_id:
             return  # Skip processing if the message is older than the last processed one
 
+        if not update.message:
+            return  # Skip updates that are not messages
+
         user_message = update.message.text.lower()
         chat_type = update.message.chat.type
         user_name = update.message.from_user.first_name
@@ -49,8 +52,14 @@ class PrincessSeleneBot:
         logger.debug(f"Received message from {user_name} (@{user_username}): {user_message} in {chat_type}")
 
         triggers = ["hi", "hello", "how are you", "love", "joke", "fun"]  
+        bot_name = context.bot.username.lower()
+        bot_triggers = ["selene", bot_name]  # Add your bot's name here if different from the username
 
-        if any(trigger in user_message for trigger in triggers) or update.message.reply_to_message:
+        is_trigger_message = any(trigger in user_message for trigger in triggers)
+        is_bot_mentioned = any(bot_trigger in user_message for bot_trigger in bot_triggers)
+        is_reply_to_bot = update.message.reply_to_message and update.message.reply_to_message.from_user.username == context.bot.username
+
+        if is_trigger_message or is_bot_mentioned or is_reply_to_bot:
             try:
                 # Include sender's name and username with the message text
                 full_message = f"{user_message} [From: {user_name} (@{user_username})]"
@@ -79,6 +88,9 @@ class PrincessSeleneBot:
         self.last_update_id = update.update_id  # Update the last processed update ID
 
     async def private_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        if not update.message:
+            return  # Skip updates that are not messages
+
         user_message = update.message.text.lower()
         user_name = update.message.from_user.first_name
         user_username = update.message.from_user.username
