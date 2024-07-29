@@ -1,6 +1,6 @@
-from handler import ScorpiBot
+from handler import PrincessSeleneBot
 from config import BOT_TOKEN
 
 if __name__ == "__main__":
-    bot = ScorpiBot(BOT_TOKEN)
+    bot = PrincessSeleneBot(BOT_TOKEN)
     bot.run()
