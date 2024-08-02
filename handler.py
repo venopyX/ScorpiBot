@@ -2,6 +2,7 @@ import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from utils import ScorpiAPI
+from text_processor import TextManager  # Assuming your TextManager and related classes are in a file named text_processor.py
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -11,6 +12,7 @@ class PrincessSeleneBot:
     def __init__(self, token):
         self.application = ApplicationBuilder().token(token).build()
         self.last_update_id = None  # To keep track of the last processed update
+        self.text_manager = TextManager()  # Initialize TextManager
 
         # Command Handlers
         self.application.add_handler(CommandHandler("start", self.start_command))
@@ -37,76 +39,29 @@ class PrincessSeleneBot:
         await context.bot.send_message(chat_id=update.effective_chat.id, text=help_message)
         logger.info(f"Sent help message to {update.effective_chat.id}")
 
-    async def group_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def process_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, chat_type: str):
         if self.last_update_id and update.update_id <= self.last_update_id:
             return  # Skip processing if the message is older than the last processed one
 
         if not update.message:
             return  # Skip updates that are not messages
 
-        user_message = update.message.text.lower()
-        chat_type = update.message.chat.type
+        user_message = update.message.text
         user_name = update.message.from_user.first_name
         user_username = update.message.from_user.username
         message_id = update.message.message_id
         logger.debug(f"Received message from {user_name} (@{user_username}): {user_message} in {chat_type}")
 
-        triggers = ["hi", "hello", "how are you", "love", "joke", "fun"]  
-        bot_name = context.bot.username.lower()
-        bot_triggers = ["selene", bot_name]  # Add your bot's name here if different from the username
-
-        is_trigger_message = any(trigger in user_message for trigger in triggers)
-        is_bot_mentioned = any(bot_trigger in user_message for bot_trigger in bot_triggers)
-        is_reply_to_bot = update.message.reply_to_message and update.message.reply_to_message.from_user.username == context.bot.username
-
-        if is_trigger_message or is_bot_mentioned or is_reply_to_bot:
-            try:
-                # Include sender's name and username with the message text
-                full_message = f"{user_message} [From: {user_name} (@{user_username})]"
-                
-                # Make the API call
-                api_response = ScorpiAPI.get_response(full_message)
-                logger.debug(f"API response data: {api_response}")
-
-                # Use the plain string response directly
-                reply_text = api_response if api_response else "Sorry, I couldn't understand that. Can you try again? 🤔"
-
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text=reply_text,
-                    reply_to_message_id=message_id  # Reply to the original message
-                )
-                logger.info(f"Sent response to {update.effective_chat.id} in reply to message {message_id}")
-            except Exception as e:
-                logger.error(f"Error in group_message_handler: {e}")
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text="Oops! Something went wrong. 😅",
-                    reply_to_message_id=message_id
-                )
-
-        self.last_update_id = update.update_id  # Update the last processed update ID
-
-    async def private_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if not update.message:
-            return  # Skip updates that are not messages
-
-        user_message = update.message.text.lower()
-        user_name = update.message.from_user.first_name
-        user_username = update.message.from_user.username
-        message_id = update.message.message_id
-        logger.debug(f"Received private message from {user_name} (@{user_username}): {user_message}")
-
         try:
-            # Include sender's name and username with the message text
-            full_message = f"{user_message} [From: {user_name} (@{user_username})]"
-            
+            # Detect and translate to English
+            translated_message, original_language_code = self.text_manager.detect_and_translate_to_english(user_message)
+
             # Make the API call
-            api_response = ScorpiAPI.get_response(full_message)
+            api_response = ScorpiAPI.get_response(translated_message)
             logger.debug(f"API response data: {api_response}")
 
-            # Use the plain string response directly
-            reply_text = api_response if api_response else "Sorry, I couldn't understand that. Can you try again? 🤔"
+            # Translate the response back to the original language
+            reply_text = self.text_manager.translate_from_english(api_response, original_language_code)
 
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
@@ -115,12 +70,20 @@ class PrincessSeleneBot:
             )
             logger.info(f"Sent response to {update.effective_chat.id} in reply to message {message_id}")
         except Exception as e:
-            logger.error(f"Error in private_message_handler: {e}")
+            logger.error(f"Error in process_message: {e}")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="Oops! Something went wrong. 😅",
                 reply_to_message_id=message_id
             )
+
+        self.last_update_id = update.update_id  # Update the last processed update ID
+
+    async def group_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await self.process_message(update, context, "group")
+
+    async def private_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await self.process_message(update, context, "private")
 
     def run(self):
         logger.info("Starting Princess Selene...")
