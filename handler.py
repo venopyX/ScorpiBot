@@ -55,6 +55,7 @@ class PrincessSeleneBot:
         try:
             # Detect and translate to English
             translated_message, original_language_code = self.text_manager.detect_and_translate_to_english(user_message)
+            logger.debug(f"Translated message to English: {translated_message}")
 
             # Make the API call
             api_response = ScorpiAPI.get_response(translated_message)
@@ -62,6 +63,7 @@ class PrincessSeleneBot:
 
             # Translate the response back to the original language
             reply_text = self.text_manager.translate_from_english(api_response, original_language_code)
+            logger.debug(f"Translated API response to original language ({original_language_code}): {reply_text}")
 
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
@@ -88,3 +90,4 @@ class PrincessSeleneBot:
     def run(self):
         logger.info("Starting Princess Selene...")
         self.application.run_polling()
+

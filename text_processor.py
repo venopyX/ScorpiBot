@@ -1,9 +1,7 @@
 import re
 from fidel import Translate, Reverse
 from langdetect import detect
-
 from deep_translator import GoogleTranslator
-
 
 class TextProcessor:
     def __init__(self):
@@ -40,28 +38,19 @@ class TextProcessor:
         if self.detect_script(text) == "Amharic (Latin script)" or self.detect_script(text) == "Unknown":
             return Translate(text).translate()
         return text
-
+    
     def geez_to_am_lat(self, text):
         """Reverse translate Amharic (Ge'ez script) to Amharic (Latin script)."""
         if self.detect_script(text) == "Amharic (Ge'ez)":
-            try:
-                reverse_translated = Reverse(text, symbol=True).translate()
-                return reverse_translated
-            except Exception as e:
-                print(f"Reverse translation error: {e}")
-                return text
+            return Reverse(text, symbol=True)
         return text
-
-
-
-
-class DeepTranslator:
-    def __init__(self):
-        self.translator = GoogleTranslator()
-
-    def translate(self, text, target_language):
-        return self.translator.translate(text, target=target_language)
-
+    
+    def process_text(self, text):
+        """Process the text according to its detected type."""
+        script_type = self.detect_script(text)
+        if script_type == "Amharic (Latin script)" or script_type == "Unknown":
+            return self.am_lat_to_geez(text)
+        return text
 
 class TextManager:
     def __init__(self):
@@ -69,53 +58,47 @@ class TextManager:
         self.english_to_geez = GoogleTranslator(source='en', target='am')
         self.oromo_to_english = GoogleTranslator(source='om', target='en')
         self.english_to_oromo = GoogleTranslator(source='en', target='om')
+        self.text_processor = TextProcessor()
 
     def detect_language(self, text):
-        if self.is_amharic_geez(text):
+        script = self.text_processor.detect_script(text)
+        if script == 'Amharic (Ge\'ez)':
             return 'am'
-        elif self.is_amharic_latin(text):
-            return 'am_lat'
-        elif self.is_oromo(text):
-            return 'om'
-        elif self.is_english(text):
+        elif script == 'English':
             return 'en'
+        elif script == 'Afan Oromo':
+            return 'om'
+        elif script == 'Amharic (Latin script)':
+            return 'am_lat'
         else:
             return 'other'
-
-    def is_amharic_geez(self, text):
-        return any('\u1200' <= char <= '\u137F' for char in text)
-
-    def is_amharic_latin(self, text):
-        return all(char.isalpha() or char.isspace() for char in text) and not self.is_english(text)
-
-    def is_oromo(self, text):
-        return all(char.isalpha() or char.isspace() for char in text) and not (self.is_english(text) or self.is_amharic_latin(text))
-
-    def is_english(self, text):
-        return all('A' <= char <= 'Z' or 'a' <= char <= 'z' or char.isspace() for char in text)
 
     def detect_and_translate_to_english(self, text):
         detected_language = self.detect_language(text)
         if detected_language == 'am':
             translated_text = self.geez_to_english.translate(text)
-        elif detected_language == 'am_lat':
-            amharic_geez_text = TextProcessor.am_lat_to_geez(text)
-            translated_text = self.geez_to_english.translate(amharic_geez_text)
         elif detected_language == 'om':
             translated_text = self.oromo_to_english.translate(text)
+        elif detected_language == 'am_lat':
+            amharic_geez_text = self.text_processor.am_lat_to_geez(text)
+            translated_text = self.geez_to_english.translate(amharic_geez_text)
+        elif detected_language == 'en':
+            translated_text = text  # No translation needed
         else:
-            amharic_geez_text = TextProcessor.am_lat_to_geez(text)
+            amharic_geez_text = self.text_processor.am_lat_to_geez(text)
             translated_text = self.geez_to_english.translate(amharic_geez_text)
         return translated_text, detected_language
 
     def translate_from_english(self, text, target_language):
         if target_language == 'am':
             return self.english_to_geez.translate(text)
-        elif target_language == 'am_lat':
-            amharic_geez_text = self.english_to_geez.translate(text)
-            return TextProcessor.geez_to_am_lat(amharic_geez_text)
         elif target_language == 'om':
             return self.english_to_oromo.translate(text)
+        elif target_language == 'am_lat':
+            amharic_geez_text = self.english_to_geez.translate(text)
+            return self.text_processor.geez_to_am_lat(amharic_geez_text)
+        elif target_language == 'en':
+            return text  # No translation needed
         else:
             amharic_geez_text = self.english_to_geez.translate(text)
-            return TextProcessor.geez_to_am_lat(amharic_geez_text)
+            return self.text_processor.geez_to_am_lat(amharic_geez_text)
