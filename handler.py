@@ -8,6 +8,9 @@ from text_processor import TextManager  # Assuming your TextManager and related 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Define your triggers here
+TRIGGER_KEYWORDS = ["princess", "selene", "how are you", "joke", "fun", "guys", "jema"]
+
 class PrincessSeleneBot:
     def __init__(self, token):
         self.application = ApplicationBuilder().token(token).build()
@@ -82,7 +85,14 @@ class PrincessSeleneBot:
         self.last_update_id = update.update_id  # Update the last processed update ID
 
     async def group_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await self.process_message(update, context, "group")
+        user_message = update.message.text.lower()
+        bot_username = context.bot.username
+
+        # Check if the message contains any trigger keywords, mentions the bot, or is a reply to the bot
+        if any(keyword in user_message for keyword in TRIGGER_KEYWORDS) or \
+           f"@{bot_username}" in user_message or \
+           (update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id):
+            await self.process_message(update, context, "group")
 
     async def private_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         await self.process_message(update, context, "private")
@@ -90,4 +100,3 @@ class PrincessSeleneBot:
     def run(self):
         logger.info("Starting Princess Selene...")
         self.application.run_polling()
-
