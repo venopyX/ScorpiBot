@@ -1,3 +1,6 @@
 python-telegram-bot
 requests
 python-dotenv
+fidel
+langdetect
+deep_translator
