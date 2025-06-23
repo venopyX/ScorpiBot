@@ -26,7 +26,7 @@ RUN pip install --upgrade pip setuptools wheel
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY config.py models.py instruction.py api_client.py text_processor.py message_handler.py health_api.py bot_with_api.py ./
+COPY config.py models.py instruction.py api_client.py text_processor.py message_handler.py health_api.py bot.py ./
 
 RUN adduser --disabled-password --gecos '' botuser \
     && chown -R botuser:botuser /app
