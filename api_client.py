@@ -25,7 +25,7 @@ class APIConfig:
     """API configuration with defaults."""
     base_url: str = API_BASE_URL
     token: str = API_TOKEN
-    model: str = "@cf/meta/llama-3-8b-instruct"
+    model: str = "@cf/meta/llama-3.2-3b-instruct"
     timeout: int = 30
     max_retries: int = 3
     retry_delay: float = 1.0
