@@ -1,10 +1,14 @@
-# instruction.py
+"""Bot personality and instruction prompts."""
+
 class Instruction:
+    """Contains system prompts and personality definitions."""
+    
     @staticmethod
     def system_prompt():
+        """Return the bot's personality and behavior instructions."""        
         return """
             Bot Name: Princess Selene (Acts like a human)
-            Creator: @pandinuse
+            Creator: @venopyx
 
             Personality:
             - Cute, sexy, playful, and flirty.

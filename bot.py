@@ -1,5 +1,62 @@
-from handler import PrincessSeleneBot
+"""Main bot application."""
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from config import BOT_TOKEN
+from message_handler import MessageProcessor
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class PrincessSeleneBot:
+    """Main bot class handling Telegram interactions."""
+    
+    def __init__(self, token: str):
+        self.application = ApplicationBuilder().token(token).build()
+        self.message_processor = MessageProcessor()
+        self._register_handlers()
+    
+    def _register_handlers(self) -> None:
+        """Register command and message handlers."""
+        self.application.add_handler(CommandHandler("start", self.start_command))
+        self.application.add_handler(CommandHandler("help", self.help_command))
+        self.application.add_handler(
+            MessageHandler(filters.TEXT & filters.ChatType.GROUPS, self.group_message_handler)
+        )
+        self.application.add_handler(
+            MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, self.private_message_handler)
+        )
+    
+    async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /start command."""
+        message = "Hey there, cutie! I'm Princess Selene, your flirty, fun, and oh-so-cute chat buddy. 😘😂"
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+        logger.info(f"Start command sent to {update.effective_chat.id}")
+    
+    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /help command."""
+        message = (
+            "Here's what I can do:\n"
+            "- Chat with you in a fun and flirty way.\n"
+            "- Engage in playful and warm conversations with you!\n"
+            "Just mention me in a group or chat with me privately to see my magic! ✨"
+        )
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
+        logger.info(f"Help command sent to {update.effective_chat.id}")
+    
+    async def group_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle group messages."""
+        if self.message_processor.should_respond_in_group(update, context):
+            await self.message_processor.process_message(update, context, "group")
+    
+    async def private_message_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle private messages."""
+        await self.message_processor.process_message(update, context, "private")
+    
+    def run(self) -> None:
+        """Start the bot."""
+        logger.info("Starting Princess Selene...")
+        self.application.run_polling()
 
 if __name__ == "__main__":
     bot = PrincessSeleneBot(BOT_TOKEN)
