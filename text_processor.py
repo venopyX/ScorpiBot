@@ -2,8 +2,11 @@
 import re
 from typing import Tuple
 from fidel import Transliterate
-from langdetect import detect, LangDetectError
+from langdetect import detect, DetectorFactory
 from deep_translator import GoogleTranslator
+
+# Set seed for consistent language detection results
+DetectorFactory.seed = 0
 
 class TextProcessor:
     """Handles script detection and conversion between Latin and Ge'ez."""
@@ -27,7 +30,7 @@ class TextProcessor:
             language = detect(text)
             lang_map = {"en": "English", "om": "Afan Oromo"}
             return lang_map.get(language, "Latin script (Other)")
-        except LangDetectError:
+        except Exception:
             return "Latin script (Other)"
     
     def am_lat_to_geez(self, text: str) -> str:
