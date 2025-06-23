@@ -1,20 +1,32 @@
 """Main bot application."""
 import logging
+import sys
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from config import BOT_TOKEN
 from message_handler import MessageProcessor
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
 class PrincessSeleneBot:
     """Main bot class handling Telegram interactions."""
     
     def __init__(self, token: str):
+        if not token:
+            raise ValueError("BOT_TOKEN is required")
+        
         self.application = ApplicationBuilder().token(token).build()
         self.message_processor = MessageProcessor()
         self._register_handlers()
+        logger.info("Bot initialized successfully")
     
     def _register_handlers(self) -> None:
         """Register command and message handlers."""
@@ -26,6 +38,7 @@ class PrincessSeleneBot:
         self.application.add_handler(
             MessageHandler(filters.TEXT & filters.ChatType.PRIVATE, self.private_message_handler)
         )
+        logger.info("Handlers registered successfully")
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
@@ -55,9 +68,19 @@ class PrincessSeleneBot:
     
     def run(self) -> None:
         """Start the bot."""
-        logger.info("Starting Princess Selene...")
-        self.application.run_polling()
+        logger.info("Starting Princess Selene Bot...")
+        try:
+            self.application.run_polling(drop_pending_updates=True)
+        except Exception as e:
+            logger.error(f"Bot crashed: {e}")
+            raise
 
 if __name__ == "__main__":
-    bot = PrincessSeleneBot(BOT_TOKEN)
-    bot.run()
+    try:
+        bot = PrincessSeleneBot(BOT_TOKEN)
+        bot.run()
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Failed to start bot: {e}")
+        sys.exit(1)

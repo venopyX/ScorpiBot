@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from models import MessageHistory, TRIGGER_KEYWORDS
 from text_processor import TextManager
-from api_client import AIAPIClient
+from api_client import get_api_client
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +15,7 @@ class MessageProcessor:
     def __init__(self):
         self.message_history = MessageHistory()
         self.text_manager = TextManager()
+        self.api_client = get_api_client()
         self.last_update_id: Optional[int] = None
     
     async def process_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, chat_type: str) -> None:
@@ -77,7 +78,7 @@ class MessageProcessor:
         final_message = self._prepare_final_message(update, user_info, translated_message)
         api_input = f"Our Last Chat(used for to remember): {translated_history}\n\nMy new Message: {final_message}"
         
-        api_response = AIAPIClient.get_response(api_input)
+        api_response = self.api_client.get_response(api_input)
         reply_text = self.text_manager.translate_from_english(api_response, history_lang)
         
         await context.bot.send_message(

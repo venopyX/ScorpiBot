@@ -1,23 +1,18 @@
 services:
-  - type: worker
+  - type: background-worker
     name: princess-selene-bot
-    env: python
+    runtime: docker
     plan: free
     repo: https://github.com/YOUR_USERNAME/YOUR_REPO.git
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install -r requirements.txt
-    startCommand: python bot.py
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: API_BASE_URL
         sync: false
       - key: API_TOKEN
-        sync: false
+        sync: false  
       - key: BOT_TOKEN
         sync: false
       - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: PYTHONDONTWRITEBYTECODE
         value: "1"
       - key: LOG_LEVEL
         value: "INFO"
