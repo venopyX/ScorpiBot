@@ -1,10 +1,14 @@
-"""Main bot application."""
+"""Main bot application with FastAPI health endpoints."""
+import asyncio
 import logging
 import sys
+import threading
+import uvicorn
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 from config import BOT_TOKEN
 from message_handler import MessageProcessor
+from health_api import app as health_app
 
 # Configure logging
 logging.basicConfig(
@@ -66,21 +70,43 @@ class PrincessSeleneBot:
         """Handle private messages."""
         await self.message_processor.process_message(update, context, "private")
     
-    def run(self) -> None:
-        """Start the bot."""
-        logger.info("Starting Princess Selene Bot...")
+    def run_polling(self) -> None:
+        """Start the bot polling."""
+        logger.info("Starting Princess Selene Bot polling...")
         try:
             self.application.run_polling(drop_pending_updates=True)
         except Exception as e:
-            logger.error(f"Bot crashed: {e}")
+            logger.error(f"Bot polling crashed: {e}")
             raise
 
-if __name__ == "__main__":
+def run_health_api():
+    """Run FastAPI health check server."""
+    logger.info("Starting health API server on port 8000...")
+    uvicorn.run(
+        health_app,
+        host="0.0.0.0",
+        port=8000,
+        log_level="info",
+        access_log=True
+    )
+
+def main():
+    """Main function to run both bot and health API."""
     try:
+        # Start health API in a separate thread
+        health_thread = threading.Thread(target=run_health_api, daemon=True)
+        health_thread.start()
+        logger.info("Health API started in background thread")
+        
+        # Start bot polling in main thread
         bot = PrincessSeleneBot(BOT_TOKEN)
-        bot.run()
+        bot.run_polling()
+        
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()

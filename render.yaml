@@ -1,5 +1,5 @@
 services:
-  - type: background-worker
+  - type: web
     name: princess-selene-bot
     runtime: docker
     plan: free
@@ -16,3 +16,6 @@ services:
         value: "1"
       - key: LOG_LEVEL
         value: "INFO"
+      - key: PORT
+        value: "8000"
+    healthCheckPath: "/ping"
