@@ -25,11 +25,11 @@ class APIConfig:
     """API configuration with defaults."""
     base_url: str = API_BASE_URL
     token: str = API_TOKEN
-    model: str = "@cf/meta/llama-3.2-3b-instruct"
+    model: str = "@cf/meta/llama-4-scout-17b-16e-instruct"
     timeout: int = 30
     max_retries: int = 3
     retry_delay: float = 1.0
-    fallback_message: str = "Oops! Something went wrong. 😅"
+    fallback_message: str = "Oops! Sorry what did u say? 😜"
 
 @dataclass
 class APIResponse:
