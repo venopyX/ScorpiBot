@@ -26,7 +26,8 @@ RUN pip install --upgrade pip setuptools wheel
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY config.py models.py instruction.py api_client.py text_processor.py message_handler.py health_api.py bot.py ./
+COPY run.py ./
+COPY app ./app
 
 RUN adduser --disabled-password --gecos '' botuser \
     && chown -R botuser:botuser /app
@@ -38,4 +39,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/ping || exit 1
 
-CMD ["python", "bot.py"]
+CMD ["python", "run.py"]
