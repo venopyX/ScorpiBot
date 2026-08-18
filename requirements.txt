@@ -1,7 +1,7 @@
 python-telegram-bot>=21.0,<22
 requests>=2.31
 python-dotenv>=1.0
-fidel>=0.1.4
+fidel>=0.1.0
 langdetect>=1.0.9
 deep-translator>=1.11
 fastapi>=0.110
