@@ -78,3 +78,42 @@ def test_translator_failure_on_one_chunk_falls_back_to_original_text():
     # chunk is used instead of crashing - and the pet name still renders.
     assert "Good morning" in result
     assert "\u12CD\u12F4" in result
+
+
+def test_translator_returning_none_does_not_crash_join():
+    """Regression test: deep_translator's GoogleTranslator can return None
+    instead of raising on some inputs (rate limiting, odd chunk length,
+    transient hiccups). That used to end up inside the parts list handed
+    to "".join(), crashing with "sequence item N: expected str instance,
+    NoneType found". Must fall back to the original chunk text instead."""
+
+    class SilentlyFailingTranslator:
+        def __init__(self):
+            self.call_count = 0
+
+        def translate(self, text):
+            self.call_count += 1
+            # Simulate Google returning None on, say, the second chunk.
+            if self.call_count == 2:
+                return None
+            return f"[OK:{text}]"
+
+    service = TranslationService()
+    # Two pet names guarantee at least two separate text chunks get sent
+    # to the translator, so the second call is exercised.
+    result = service._translate_guarded("Hey baby, love you honey", SilentlyFailingTranslator(), "am")
+
+    assert isinstance(result, str)
+    assert "\u12CD\u12F4" in result  # ውዴ (baby)
+    assert "\u134D\u1245\u122C" in result  # ፍቅሬ (love)
+    assert "\u121B\u122D\u12EC" in result  # ማርዬ (honey)
+
+
+def test_translator_returning_empty_string_falls_back_to_original_text():
+    class EmptyStringTranslator:
+        def translate(self, text):
+            return ""
+
+    service = TranslationService()
+    result = service._translate_guarded("Good morning", EmptyStringTranslator(), "am")
+    assert result == "Good morning"

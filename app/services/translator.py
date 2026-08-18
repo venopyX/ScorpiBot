@@ -150,8 +150,28 @@ class TranslationService:
         return "".join(parts)
 
     def _translate_chunk(self, text: str, translator: GoogleTranslator) -> str:
+        """Translate one chunk, always returning a usable string.
+
+        deep_translator's GoogleTranslator can return None instead of
+        raising when a call fails silently (rate limiting, an odd/short
+        chunk, a transient hiccup) - that's not an exception, so the old
+        try/except here didn't catch it, and a None ended up inside the
+        `parts` list that later gets "".join()-ed, crashing with
+        "sequence item N: expected str instance, NoneType found". Every
+        return path here is now guaranteed to be a real string.
+        """
         try:
-            return translator.translate(text)
+            result = translator.translate(text)
         except Exception as exc:
             logger.error("Translation failed for chunk, returning original text: %s", exc)
             return text
+
+        if not isinstance(result, str) or not result:
+            logger.warning(
+                "Translator returned %r for chunk %r, falling back to original text",
+                result,
+                text,
+            )
+            return text
+
+        return result
