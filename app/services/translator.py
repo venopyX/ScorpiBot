@@ -1,4 +1,6 @@
-"""Script detection and translation, with pet names shielded from mistranslation."""
+"""Script detection and translation, with pet names spliced in directly
+instead of ever being sent through Google Translate. See
+app.services.pet_name_guard for the full explanation."""
 import logging
 import re
 from typing import Tuple
@@ -54,9 +56,12 @@ class ScriptDetector:
 class TranslationService:
     """Translates between English, Amharic, and Afaan Oromo.
 
-    Pet names (see app.core.glossary) are masked before every translation
-    call and restored with their natural target-language equivalent
-    afterward, so "baby" never becomes a literal infant in Amharic.
+    Pet names (see app.core.glossary) never reach the translator at all -
+    the sentence is split into plain-text chunks and pet-name chunks, only
+    the plain-text chunks get sent to Google Translate, and the pet-name
+    chunks are spliced in directly from the glossary. See
+    app.services.pet_name_guard for why an earlier placeholder-token
+    approach didn't work for this language pair.
     """
 
     def __init__(self) -> None:
@@ -117,11 +122,36 @@ class TranslationService:
         return self.scripts.geez_to_latin(geez)
 
     def _translate_guarded(self, text: str, translator: GoogleTranslator, target_lang: str) -> str:
-        """Mask pet names, translate the rest, then restore natural equivalents."""
-        masked_text, mapping = self.pet_guard.mask(text)
+        """Translate `text`, splicing in glossary pet-name terms directly
+        instead of ever sending them to the translator.
+
+        Each plain-text segment is translated with its own API call so a
+        pet name never shares a translator call with surrounding words
+        (which is what let Google's NMT mangle the earlier placeholder
+        approach). Segments are rejoined in original order.
+        """
+        segments = self.pet_guard.split(text)
+
+        # Common case: no pet names in this text at all - one call, no
+        # extra overhead, identical behavior to before this feature existed.
+        if len(segments) == 1 and segments[0][0] == "text":
+            return self._translate_chunk(segments[0][1], translator)
+
+        parts = []
+        for kind, value in segments:
+            if kind == "pet":
+                parts.append(self.pet_guard.render(value, target_lang))
+            elif value.strip():
+                parts.append(self._translate_chunk(value, translator))
+            else:
+                # Whitespace/punctuation-only chunk - nothing to translate.
+                parts.append(value)
+
+        return "".join(parts)
+
+    def _translate_chunk(self, text: str, translator: GoogleTranslator) -> str:
         try:
-            translated = translator.translate(masked_text)
+            return translator.translate(text)
         except Exception as exc:
-            logger.error("Translation failed, returning masked source text: %s", exc)
-            translated = masked_text
-        return self.pet_guard.restore(translated, mapping, target_lang)
+            logger.error("Translation failed for chunk, returning original text: %s", exc)
+            return text

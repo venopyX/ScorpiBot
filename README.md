@@ -54,18 +54,28 @@ Google Translate has no idea "baby" is a term of endearment - translated
 literally into Amharic it comes back as the word for a literal child, which
 reads as bizarre instead of flirty. The fix is `app/core/glossary.py` (the
 list of pet names you can extend) plus `app/services/pet_name_guard.py`
-(the mechanism):
+(the mechanism).
 
-1. Before any text is sent to Google Translate, every pet-name phrase found
-   in it is swapped for an inert placeholder token that survives translation
-   untouched (e.g. `baby` -> `zzptzz2zzptzz`).
-2. The rest of the sentence is translated normally.
-3. Afterward, each placeholder is swapped back in - not for whatever Google
-   would have produced, but for the natural, hand-picked equivalent from the
-   glossary (`baby` -> `ውዴ` in Amharic, `jaalalee koo` in Afaan Oromo).
+**An earlier version of this masked pet names with a fake placeholder word
+(e.g. `baby` -> `zzptzz0zzptzz`) and translated the whole sentence in one
+call, betting the placeholder would survive untouched. It didn't** - Google's
+NMT engine transliterates unrecognized Latin tokens into Ge'ez script by
+sound instead of leaving them alone, so the placeholder came back as
+mangled Ge'ez noise instead of the pet name.
 
-Google Translate never sees the pet name, so it never gets a chance to
-mistranslate it. To add a new pet name, add one `PetName(...)` entry to
+The current approach never lets Google Translate see anything related to
+the pet name at all:
+
+1. The sentence is split into an ordered list of plain-text chunks and
+   pet-name chunks (`PetNameGuard.split`).
+2. Only the plain-text chunks are sent to Google Translate, each as its own
+   small call.
+3. The pet-name chunks are never translated - they're replaced directly
+   with the natural glossary term for the target language and spliced back
+   into place in order.
+
+Nothing pet-name-related ever touches the translator, so there's nothing
+for it to mangle. To add a new pet name, add one `PetName(...)` entry to
 `app/core/glossary.py` - nothing else needs to change.
 
 ## How AI-driven reactions work

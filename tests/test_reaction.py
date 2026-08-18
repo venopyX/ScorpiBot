@@ -19,6 +19,33 @@ def test_none_token_means_no_reaction():
     assert clean == "How was your day today"
 
 
+def test_bare_react_with_nothing_after_it_is_treated_as_no_reaction():
+    """Regression test: the model sometimes writes a bare "REACT:" with no
+    emoji after it. The old regex required \\S+ after the colon and simply
+    didn't match, so the literal line "REACT:" (and its Amharic
+    mistranslation "\u121D\u120B\u123D \u12ED\u1235\u1327") leaked straight into what the
+    user saw. This must be stripped and treated as no reaction."""
+    reply = "You are making me blush with that sweet message, love\n\nREACT:"
+    clean, emoji = extract_reaction(reply)
+    assert emoji is None
+    assert "REACT" not in clean
+    assert clean == "You are making me blush with that sweet message, love"
+
+
+def test_bare_react_with_trailing_whitespace_only():
+    reply = "Sweet dreams\nREACT:   "
+    clean, emoji = extract_reaction(reply)
+    assert emoji is None
+    assert "REACT" not in clean
+
+
+def test_react_without_colon_is_still_recognized():
+    reply = "So funny\nREACT \U0001F923"
+    clean, emoji = extract_reaction(reply)
+    assert emoji == "\U0001F923"
+    assert "REACT" not in clean
+
+
 def test_missing_tag_fails_safe_to_no_reaction():
     reply = "Just a plain reply with no control line at all"
     clean, emoji = extract_reaction(reply)
