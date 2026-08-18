@@ -66,6 +66,35 @@ def test_tag_is_case_insensitive():
     assert emoji == "\U0001F923"
 
 
+def test_emoji_with_trailing_punctuation_still_matches():
+    """Regression test: an exact-match-only check silently kills reactions
+    the moment the model adds any stray character around the emoji, which
+    is common in the wild ("REACT: 🔥." or "REACT: 🔥!")."""
+    reply = "That is so hot\nREACT: \U0001F525."
+    clean, emoji = extract_reaction(reply)
+    assert emoji == "\U0001F525"
+
+
+def test_emoji_wrapped_in_extra_words_still_matches():
+    reply = "I am so proud of you\nREACT: I'll go with \U0001F525 for this one"
+    clean, emoji = extract_reaction(reply)
+    assert emoji == "\U0001F525"
+
+
+def test_emoji_with_surrounding_whitespace_or_parens():
+    reply = "Aww\nREACT: (\U0001F970)"
+    clean, emoji = extract_reaction(reply)
+    assert emoji == "\U0001F970"
+
+
+def test_compound_emoji_not_shadowed_by_shorter_prefix_emoji():
+    """❤️‍🔥 shares codepoints with plain ❤ - the longer compound emoji
+    must win when it's actually what's present."""
+    reply = "You are so bold\nREACT: \u2764\uFE0F\u200D\U0001F525"
+    clean, emoji = extract_reaction(reply)
+    assert emoji == "\u2764\uFE0F\u200D\U0001F525"
+
+
 def test_all_reaction_emojis_are_telegram_legal():
     allowed = {e.value for e in ReactionEmoji}
     for emoji in REACTION_EMOJIS:

@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes
 
 logger = logging.getLogger(__name__)
 
-START_MESSAGE = "Hey there, cutie! I'm Princess Selene, your flirty, fun, and oh-so-cute chat buddy. \U0001F618\U0001F602"
+START_MESSAGE = "Hey \U0001F618\U0001F602"
 
 HELP_MESSAGE = (
     "Here's what I can do:\n"

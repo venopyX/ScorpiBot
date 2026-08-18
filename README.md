@@ -94,12 +94,18 @@ REACT: NONE
 
 It's told to pick a reaction only for genuinely strong, obvious moments -
 something that made it laugh, something heartbreaking, something that makes
-it swoon - and to default to `NONE` for ordinary chit-chat. `app/services/
-reaction.py` strips that line out before the reply is translated and shown
-to the user, validates the emoji against the fixed allow-list, and uses it
-to fire a native Telegram reaction via `set_message_reaction`. If the tag is
-missing, malformed, or outside the allowed set, it fails safe to no
-reaction rather than guessing.
+it swoon - and to default to `NONE` for ordinary chit-chat. The directive
+also drills the exact two-line shape with worked examples, since a
+described format is much less reliable than a shown one for smaller
+models. `app/services/reaction.py` strips that line out before the reply
+is translated and shown to the user, validates the emoji against the fixed
+allow-list, and uses it to fire a native Telegram reaction via
+`set_message_reaction`. If the tag is missing or malformed, it fails safe
+to no reaction rather than guessing - but if the model wraps a valid emoji
+in extra punctuation or words (`REACT: 🔥.` or `REACT: I'll go with 🔥`),
+that emoji is still found and used rather than being thrown away, since an
+earlier exact-match-only version of this check was silently killing
+reactions on almost any formatting deviation.
 
 ## Configuration
 

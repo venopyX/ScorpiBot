@@ -82,18 +82,25 @@ class MessageProcessor:
 
     async def _apply_reaction(self, update: Update, context: ContextTypes.DEFAULT_TYPE, emoji: str) -> None:
         """Set a native Telegram reaction on the user's message. Best-effort:
-        never let a reaction failure affect the actual chat reply."""
+        never let a reaction failure affect the actual chat reply.
+
+        Logged at INFO (not DEBUG) on purpose - reactions are meant to be
+        occasional, so both the successes and the failures are cheap to log
+        and are exactly what you need to see if reacting silently stops
+        working in production.
+        """
         try:
             await context.bot.set_message_reaction(
                 chat_id=update.effective_chat.id,
                 message_id=update.message.message_id,
                 reaction=[ReactionTypeEmoji(emoji)],
             )
-            logger.debug("Reacted with %s to message %s", emoji, update.message.message_id)
+            logger.info("Reacted with %s to message %s", emoji, update.message.message_id)
         except BadRequest as exc:
             # Can fail for reasons that don't matter to the user (message
-            # too old, chat doesn't allow reactions, etc).
-            logger.debug("Could not set reaction: %s", exc)
+            # too old, chat doesn't allow reactions, etc) - but we still
+            # want it visible in logs rather than swallowed at DEBUG.
+            logger.info("Could not set reaction %s on message %s: %s", emoji, update.message.message_id, exc)
         except Exception as exc:
             logger.warning("Unexpected error setting reaction: %s", exc)
 
