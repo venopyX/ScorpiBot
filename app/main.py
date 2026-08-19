@@ -10,7 +10,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Messa
 from app.config import settings
 from app.handlers.commands import help_command, start_command
 from app.handlers.messages import MessageProcessor
-from app.handlers.stickers import sticker_handler
+from app.handlers.stickers import should_respond_sticker, sticker_handler
 from app.health.api import app as health_app
 
 logging.basicConfig(
@@ -42,7 +42,9 @@ class PrincessSeleneBot:
         )
 
         if settings.stickers_enabled:
-            self.application.add_handler(MessageHandler(filters.Sticker.ALL, sticker_handler))
+            # Only handle stickers sent directly to bot (DM) or replied to bot
+            sticker_filter = filters.Sticker.ALL & filters.create(should_respond_sticker)
+            self.application.add_handler(MessageHandler(sticker_filter, sticker_handler))
 
         logger.info("Handlers registered successfully")
 

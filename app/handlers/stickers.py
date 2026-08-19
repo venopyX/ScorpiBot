@@ -14,6 +14,26 @@ logger = logging.getLogger(__name__)
 _NO_PACK_FALLBACK = "Cute sticker, but it's not from a pack I can dig through! \U0001F9F5"
 
 
+def should_respond_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Only respond to stickers that are sent directly (DM) or replied to the bot."""
+    message = update.message
+    if not message or not message.sticker:
+        return False
+
+    # Always respond in private chats (DMs)
+    chat_type = message.chat.type
+    if chat_type == "private":
+        return True
+
+    # In groups, only respond if the sticker is a reply to the bot
+    if chat_type in ("group", "supergroup"):
+        replied = message.reply_to_message
+        if replied and replied.from_user and replied.from_user.id == context.bot.id:
+            return True
+
+    return False
+
+
 async def sticker_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.message
     if not message or not message.sticker:
