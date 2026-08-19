@@ -3,7 +3,7 @@ the same pack the user sent."""
 import logging
 
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, filters
 
 from app.services.stickers import get_sticker_service
 
@@ -14,24 +14,29 @@ logger = logging.getLogger(__name__)
 _NO_PACK_FALLBACK = "Cute sticker, but it's not from a pack I can dig through! \U0001F9F5"
 
 
-def should_respond_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+class ShouldRespondSticker(filters.MessageFilter):
     """Only respond to stickers that are sent directly (DM) or replied to the bot."""
-    message = update.message
-    if not message or not message.sticker:
-        return False
 
-    # Always respond in private chats (DMs)
-    chat_type = message.chat.type
-    if chat_type == "private":
-        return True
+    def filter(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+        message = update.message
+        if not message or not message.sticker:
+            return False
 
-    # In groups, only respond if the sticker is a reply to the bot
-    if chat_type in ("group", "supergroup"):
-        replied = message.reply_to_message
-        if replied and replied.from_user and replied.from_user.id == context.bot.id:
+        # Always respond in private chats (DMs)
+        chat_type = message.chat.type
+        if chat_type == "private":
             return True
 
-    return False
+        # In groups, only respond if the sticker is a reply to the bot
+        if chat_type in ("group", "supergroup"):
+            replied = message.reply_to_message
+            if replied and replied.from_user and replied.from_user.id == context.bot.id:
+                return True
+
+        return False
+
+
+should_respond_sticker = ShouldRespondSticker()
 
 
 async def sticker_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

@@ -43,7 +43,7 @@ class PrincessSeleneBot:
 
         if settings.stickers_enabled:
             # Only handle stickers sent directly to bot (DM) or replied to bot
-            sticker_filter = filters.Sticker.ALL & filters.create(should_respond_sticker)
+            sticker_filter = filters.Sticker.ALL & should_respond_sticker
             self.application.add_handler(MessageHandler(sticker_filter, sticker_handler))
 
         logger.info("Handlers registered successfully")
